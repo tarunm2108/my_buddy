@@ -1,5 +1,3 @@
-import 'package:my_buddy/model/user_chats_model.dart';
-
 class UserModel {
   String id;
   String name;
@@ -10,7 +8,6 @@ class UserModel {
   String? profileUrl;
   bool? isOnline;
   String? lastSeenTime;
-  List<UserChatsModel>? chatList;
 
   UserModel({
     required this.id,
@@ -21,7 +18,6 @@ class UserModel {
     required this.gender,
     this.profileUrl,
     this.isOnline,
-    this.chatList,
     this.lastSeenTime,
   });
 
@@ -36,10 +32,6 @@ class UserModel {
         gender: json['gender'] == null ? null : json["gender"],
         lastSeenTime:
             json['lastSeenTime'] == null ? null : json["lastSeenTime"],
-        chatList: json["chatList"] == null
-            ? []
-            : List<UserChatsModel>.from(
-                json["chatList"].map((x) => UserChatsModel.fromJson(x))),
       );
 
   Map<String, dynamic> toJson() => {
@@ -49,7 +41,6 @@ class UserModel {
         "phoneCode": phoneCode,
         "profileUrl": profileUrl,
         "isOnline": isOnline,
-        "chatList": chatList,
         "gender": gender,
         "dob": dob,
         "lastSeenTime": lastSeenTime,

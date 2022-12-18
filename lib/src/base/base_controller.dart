@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:country_picker/country_picker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:my_buddy/app_consts/app_colors.dart';
 import 'package:my_buddy/app_consts/constants.dart';
@@ -304,33 +306,53 @@ class AppBaseController extends GetxController {
     }
   }*/
 
-  /*Future<XFile?> pickImage() async {
-    return await Get.bottomSheet<XFile>(CupertinoActionSheet(
-      title: Text(LangKeys.selectImage.tr),
-      actions: [
-        CupertinoActionSheetAction(
-          onPressed: () async {
-            XFile? file = await _actionPickImage(ImageSource.camera);
-            back(result: file);
+  Future<XFile?> pickImage() async {
+    return await Get.bottomSheet<XFile>(
+      CupertinoActionSheet(
+        title: Text(selectAOption),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              XFile? file = await _actionPickImage(ImageSource.camera);
+              back(result: file);
+            },
+            child: Text(
+              fromCamera,
+              style: const TextStyle().regular.copyWith(
+                    color: Colors.purple,
+                    fontSize: 15,
+                  ),
+            ),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              XFile? file = await _actionPickImage(ImageSource.gallery);
+              back(result: file);
+            },
+            child: Text(
+              fromGallery,
+              style: const TextStyle().regular.copyWith(
+                    color: Colors.purple,
+                    fontSize: 15,
+                  ),
+            ),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () {
+            back();
           },
-          child: Text(LangKeys.fromCamera.tr),
+          child: Text(
+            cancel,
+            style: const TextStyle().regular.copyWith(
+                  color: Colors.purple,
+                  fontSize: 15,
+                ),
+          ),
         ),
-        CupertinoActionSheetAction(
-          onPressed: () async {
-            XFile? file = await _actionPickImage(ImageSource.gallery);
-            back(result: file);
-          },
-          child: Text(LangKeys.fromGallery.tr),
-        ),
-      ],
-      cancelButton: CupertinoActionSheetAction(
-        child: Text(LangKeys.cancel.tr),
-        isDefaultAction: true,
-        onPressed: () {
-          back();
-        },
       ),
-    ));
+    );
   }
 
   Future<XFile?> _actionPickImage(ImageSource imageSource) async {
@@ -339,7 +361,7 @@ class AppBaseController extends GetxController {
       source: imageSource,
       imageQuality: 30,
     );
-  }*/
+  }
 
   void textCopy({required String text}) {
     Clipboard.setData(

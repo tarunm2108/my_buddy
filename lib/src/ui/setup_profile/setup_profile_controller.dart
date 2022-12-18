@@ -27,7 +27,7 @@ class SetupProfileController extends AppBaseController {
   Future<void> onSubmitTap() async {
     if (_checkValidation()) {
       setBusy(true);
-     final loginUser = await ChatService.instance.createUser(
+      final loginUser = await ChatService.instance.createUser(
         user: UserModel(
           id: '',
           name: nameCtrl.text.trim(),
@@ -38,10 +38,10 @@ class SetupProfileController extends AppBaseController {
           isOnline: true,
         ),
       );
-     await SharedPre.setObj(SharedPre.loginUser, loginUser.toJson());
-     await SharedPre.setBool(SharedPre.isLogin, true);
-     setBusy(false);
-     Get.offAllNamed(chatListView);
+      await SharedPre.setObj(SharedPre.loginUser, loginUser.toJson());
+      await SharedPre.setBool(SharedPre.isLogin, true);
+      setBusy(false);
+      Get.offAllNamed(chatListView);
     }
   }
 
@@ -55,7 +55,7 @@ class SetupProfileController extends AppBaseController {
     } else if (!GetUtils.isEmail(emailCtrl.text.trim())) {
       showToast(msg: pleaseEnterValidEmail);
       return false;
-    }else if (dobCtrl.text.isEmpty) {
+    } else if (dobCtrl.text.isEmpty) {
       showToast(msg: pleaseSelectYourDob);
       return false;
     } else if (selectedGender.isEmpty) {
@@ -74,9 +74,7 @@ class SetupProfileController extends AppBaseController {
         update();
       },
       maxDate: DateTime.now(),
-      minDate: DateTime.now().subtract(
-        const Duration(days: 3000),
-      ),
+      minDate: DateTime(1970),
     );
   }
 

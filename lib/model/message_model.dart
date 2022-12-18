@@ -38,6 +38,7 @@ class MessageModel {
   MessageType type;
   String senderId;
   String receiverId;
+  String? fileUrl;
 
   MessageModel({
     required this.time,
@@ -45,6 +46,7 @@ class MessageModel {
     required this.type,
     required this.senderId,
     required this.receiverId,
+    this.fileUrl,
   });
 
   factory MessageModel.fromJson(Map<String, dynamic> json) => MessageModel(
@@ -55,6 +57,7 @@ class MessageModel {
             : decodeMessageType(type: json["type"].toString()),
         senderId: json['senderId'] == null ? null : json["senderId"],
         receiverId: json['receiverId'] == null ? null : json["receiverId"],
+        fileUrl: json['fileUrl'] == null ? null : json["fileUrl"],
       );
 
   Map<String, dynamic> toJson() => {
@@ -63,5 +66,6 @@ class MessageModel {
         "type": encodeMessageType(type: type),
         "senderId": senderId,
         "receiverId": receiverId,
+        "fileUrl": fileUrl,
       };
 }

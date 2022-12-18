@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:my_buddy/app_consts/app_assets.dart';
@@ -5,10 +6,11 @@ import 'package:my_buddy/app_consts/app_colors.dart';
 import 'package:my_buddy/app_consts/constants.dart';
 import 'package:my_buddy/app_consts/extension/space.dart';
 import 'package:my_buddy/app_consts/extension/text_style_extension.dart';
+import 'package:my_buddy/model/message_model.dart';
 import 'package:my_buddy/model/user_model.dart';
-import 'package:my_buddy/service/chat_service.dart';
 import 'package:my_buddy/src/ui/chat_view/chat_controller.dart';
 import 'package:my_buddy/src/widgets/load_image_widget.dart';
+import 'package:my_buddy/src/widgets/loader_widget.dart';
 
 class ChatView extends StatelessWidget {
   const ChatView({Key? key}) : super(key: key);
@@ -21,12 +23,11 @@ class ChatView extends StatelessWidget {
           automaticallyImplyLeading: true,
           leadingWidth: 30,
           title: StreamBuilder(
-            stream: ChatService.instance
-                .getUserData(userId: controller.receiver?.id ?? ''),
+            stream: controller.userStatusStream(),
             builder: (context, snapshot) {
-              if(snapshot.hasData){
+              if (snapshot.hasData) {
                 final user = UserModel.fromJson(
-                    snapshot.data?.docs.first.data() as Map<String, dynamic>);
+                    snapshot.data?.data() as Map<String, dynamic>);
                 return Row(
                   children: [
                     Card(
@@ -45,19 +46,19 @@ class ChatView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            user.name ?? 'User',
+                            user.name,
                             style: const TextStyle().bold.copyWith(
-                              color: Colors.white,
-                              fontSize: 18,
-                            ),
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                ),
                           ),
                           3.toSpace(),
                           Text(
                             controller.getLastSeen(user),
                             style: const TextStyle().regular.copyWith(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
                           ),
                         ],
                       ),
@@ -72,13 +73,33 @@ class ChatView extends StatelessWidget {
         body: Column(
           children: [
             Expanded(
-              child: ListView.builder(
-                itemCount: 10,
-                shrinkWrap: true,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                itemBuilder: (context, index) =>
-                    _chatItem(index, context, controller),
+              child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: controller.chatStream(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const LoaderWidget();
+                  } else if (snapshot.hasData) {
+                    return ListView.separated(
+                      shrinkWrap: true,
+                      //controller: controller.scrollController,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      itemCount: snapshot.data?.docs.length ?? 0,
+                      reverse: true,
+                      itemBuilder: (context, index) {
+                        final item = MessageModel.fromJson(
+                            snapshot.data?.docs[index].data()
+                                as Map<String, dynamic>);
+                        return _chatItem(index, controller, item);
+                      },
+                      separatorBuilder: (context, index) => 10.toSpace(),
+                    );
+                  } else {
+                    return const SizedBox.shrink();
+                  }
+                },
               ),
             ),
             6.toSpace(),
@@ -119,7 +140,7 @@ class ChatView extends StatelessWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () => _showAttachmentDialog(context, controller),
                   style: TextButton.styleFrom(
                       shape: const CircleBorder(),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -131,7 +152,7 @@ class ChatView extends StatelessWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () => controller.messageSend(),
                   style: TextButton.styleFrom(
                       shape: const CircleBorder(),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -153,19 +174,21 @@ class ChatView extends StatelessWidget {
     );
   }
 
-  Widget _chatItem(int index, BuildContext context, ChatController controller) {
+  Widget _chatItem(
+      int index, ChatController controller, MessageModel? msgItem) {
     return Container(
-      child: index == 3 ? _leftMessageView() : _rightMessageView(),
+      child: msgItem?.senderId == controller.sender?.id
+          ? _leftMessageView(msgItem)
+          : _rightMessageView(msgItem),
     );
   }
 
-  Widget _leftMessageView() {
+  Widget _leftMessageView(MessageModel? msgItem) {
     return Container(
-      padding: const EdgeInsets.only(top: 5, bottom: 5),
       alignment: Alignment.centerRight,
       child: Container(
         clipBehavior: Clip.antiAlias,
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         decoration: const BoxDecoration(
           color: Colors.purple,
           borderRadius: BorderRadius.only(
@@ -175,33 +198,34 @@ class ChatView extends StatelessWidget {
             bottomRight: Radius.circular(2),
           ),
         ),
-        child: _textTypeChat(),
+        child: msgItem?.type == MessageType.image
+            ? _imageTypeChat(msgItem)
+            : _textTypeChat(msg: msgItem?.message ?? ''),
       ),
     );
   }
 
-  Widget _rightMessageView() {
+  Widget _rightMessageView(MessageModel? msgItem) {
     return Container(
       width: Get.width,
-      padding: const EdgeInsets.symmetric(vertical: 10),
       alignment: Alignment.centerLeft,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Flexible(
             child: Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               clipBehavior: Clip.antiAlias,
               decoration: const BoxDecoration(
                 color: Colors.purple,
                 borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(15),
-                  topRight: Radius.circular(15),
+                  topLeft: Radius.circular(14),
+                  topRight: Radius.circular(14),
                   bottomLeft: Radius.circular(2),
-                  bottomRight: Radius.circular(15),
+                  bottomRight: Radius.circular(14),
                 ),
               ),
-              child: _textTypeChat(),
+              child: _textTypeChat(msg: msgItem?.message ?? ''),
             ),
           ),
         ],
@@ -209,9 +233,9 @@ class ChatView extends StatelessWidget {
     );
   }
 
-  Widget _textTypeChat() {
+  Widget _textTypeChat({required String msg}) {
     return Text(
-      'Testing2djb fdfnsdkfsd sdfdsjkfsdf sdfisjdfksdf sdfsdnfskdfsd dfskdfsdkfsd sdlfksdfskdfs fsdlfksdnfsdfsdlfjsdnfs',
+      msg,
       textWidthBasis: TextWidthBasis.longestLine,
       textAlign: TextAlign.start,
       style: const TextStyle().regular.copyWith(
@@ -221,31 +245,75 @@ class ChatView extends StatelessWidget {
     );
   }
 
-  Widget imageTypeChat() {
+  Widget _imageTypeChat(MessageModel? msgItem) {
     return InkWell(
       onTap: () {},
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 5),
-        clipBehavior: Clip.antiAlias,
-        decoration: const BoxDecoration(
-          borderRadius: BorderRadius.all(
-            Radius.circular(14),
-          ),
-        ),
-        child: const LoadImageWidget(
-          imagePath: '',
-          imageType: ImageType.network,
-          height: 120,
-          width: 120,
-          errorWidget: Center(
-            child: Icon(
-              Icons.error,
-              color: Colors.white,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: LoadImageWidget(
+              imagePath: msgItem?.fileUrl ?? '',
+              imageType: ImageType.network,
+              height: 120,
+              width: 120,
+              errorWidget: const Center(
+                child: Icon(
+                  Icons.error,
+                  color: Colors.white,
+                ),
+              ),
+              boxFit: BoxFit.fill,
             ),
           ),
-          boxFit: BoxFit.fill,
-        ),
+          8.toSpace(),
+          if (msgItem?.message.isNotEmpty ?? false)
+            _textTypeChat(msg: msgItem!.message)
+        ],
       ),
+    );
+  }
+
+  void _showAttachmentDialog(
+    BuildContext context,
+    ChatController controller,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) {
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Wrap(
+            children: List.generate(
+              controller.attachmentsOption.length,
+              (index) {
+                final item = controller.attachmentsOption[index];
+                return InkWell(
+                  onTap: item.onTap,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      item.icon,
+                      Text(
+                        item.title,
+                        style: const TextStyle().regular.copyWith(
+                              color: Colors.black,
+                              fontSize: 15,
+                            ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }

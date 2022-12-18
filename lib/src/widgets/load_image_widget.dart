@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:my_buddy/src/widgets/loader_widget.dart';
 
 enum ImageType { assets, file, network }
 
@@ -51,8 +52,7 @@ class LoadImageWidget extends StatelessWidget {
                 height: height,
                 width: width,
                 fit: boxFit,
-                placeholder: (context, url) =>
-                    const CircularProgressIndicator(),
+                placeholder: (context, url) => const LoaderWidget(),
                 errorWidget: (context, url, error) =>
                     errorWidget ?? const Icon(Icons.error),
               );

@@ -17,7 +17,11 @@ String no = "No";
 String ok = "OK";
 String noUserFoundYet = "No user found yet";
 String startChats = "Start chats";
+String selectAOption = "Select a option";
 String typeAMessage = "Type a message...";
+String fromCamera = "From Camera";
+String fromGallery = "From Gallery";
+String cancel = "Cancel";
 
 ///Toast message string
 String logoutText = "Are you sure? You want logout from app.";

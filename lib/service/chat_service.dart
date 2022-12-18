@@ -1,11 +1,9 @@
-import 'dart:developer';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:get/get_utils/get_utils.dart';
+import 'package:intl/intl.dart';
+import 'package:my_buddy/app_consts/constants.dart';
 import 'package:my_buddy/model/chat_room_model.dart';
 import 'package:my_buddy/model/message_model.dart';
-import 'package:my_buddy/model/user_chats_model.dart';
 import 'package:my_buddy/model/user_model.dart';
 
 class ChatService {
@@ -25,20 +23,8 @@ class ChatService {
   final CollectionReference chatsCollection =
       FirebaseFirestore.instance.collection(chatRooms);
 
-  // update userdata
-  void updateUserData(UserModel user) async {
-    await userCollection.doc(user.id).update({
-      "id": user.id,
-      "name": user.name,
-      "mobile": user.mobile,
-      "phoneCode": user.phoneCode,
-      "profileUrl": user.profileUrl,
-      "isOnline": user.isOnline,
-    });
-  }
-
-  Stream<QuerySnapshot<Object?>> getUserData({required String userId}){
-    return userCollection.where('id',isEqualTo: userId).get().asStream();
+  Stream<DocumentSnapshot<Object?>> getUserData({required String userId}) {
+    return userCollection.doc(userId).snapshots(includeMetadataChanges: true);
   }
 
   Future<UserModel?> getUserById({required String userId}) async {
@@ -55,9 +41,21 @@ class ChatService {
     required String userId,
     required bool status,
   }) async {
-    return await userCollection.doc(userId).update({
-      "isOnline": status,
-    }).catchError((e) => debugPrint("____ updateUserStatus error $e"));
+    Map<String, dynamic> data = {};
+    if (status) {
+      data = {
+        "isOnline": status,
+      };
+    } else {
+      data = {
+        "isOnline": status,
+        "lastSeenTime": DateFormat(serverDate).format(DateTime.now()),
+      };
+    }
+    return await userCollection
+        .doc(userId)
+        .update(data)
+        .catchError((e) => debugPrint("____ updateUserStatus error $e"));
   }
 
   Future<UserModel> createUser({required UserModel user}) async {
@@ -69,57 +67,73 @@ class ChatService {
   }
 
   // create chat room
-  Future createGroup({
-    required String loginUserId,
+  Future<void> createChatRoom({
+    required String senderId,
+    required String receiverId,
     required ChatRoomModel chatRoom,
   }) async {
-    await chatsCollection.doc(chatRoom.id).set(chatRoom.toJson());
-    //DateTime.now().millisecondsSinceEpoch
-    await userCollection.doc(loginUserId).update({
-      'chatList': FieldValue.arrayUnion([
-        UserChatsModel(id: chatRoom.id, unreadCount: 0).toJson(),
-      ])
-    });
-  }
-
-  // get user groups
-  Stream<DocumentSnapshot<Object?>> getUserGroups({required String userId}) {
-    return chatsCollection.doc().snapshots().where((event) {
-      log("___- event ${event.id}");
-      return true;
-    });
+    return await chatsCollection.doc(chatRoom.id).set(chatRoom.toJson());
   }
 
   // send message
-  Future<String> sendMessage(
-      {required String groupId, required MessageModel message}) async {
-    await chatsCollection.doc(groupId).update({
-      'messages': FieldValue.arrayUnion([message.toJson()]),
-    });
-    await chatsCollection.doc(groupId).update({
+  Future<String> sendMessage({
+    required String chatRoomId,
+    required MessageModel message,
+  }) async {
+    await chatsCollection
+        .doc(chatRoomId)
+        .collection('messages')
+        .add(message.toJson());
+    updateUnreadCount(userId: message.receiverId, chatRoomId: chatRoomId);
+    await chatsCollection.doc(chatRoomId).update({
       'lastMessage': message.message,
       'lastMessageType': encodeMessageType(type: message.type),
       'lastMessageTime': DateTime.now().millisecondsSinceEpoch,
     });
-    return groupId;
+    return chatRoomId;
   }
 
-  Stream<QuerySnapshot<Object?>> getUserChats({required String userId}) {
-    return chatsCollection.snapshots();
+  Future<void> updateUnreadCount({
+    required String userId,
+    required String chatRoomId,
+    bool? isAllRead,
+  }) async {
+    final docRef = await chatsCollection.doc(chatRoomId).get();
+    final data = docRef.data() as Map<String,dynamic>;
+    if (isAllRead ?? false) {
+      await chatsCollection.doc(chatRoomId).update({
+        '${userId}_unread': 0,
+      });
+    } else {
+      int? count = data['${userId}_unread'];
+      await chatsCollection.doc(chatRoomId).update({
+        '${userId}_unread': count == null ? 0 : count + 1,
+      });
+    }
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getChatMessages({
+    required String chatRoomId,
+    required int limit,
+  }) {
+    return chatsCollection
+        .doc(chatRoomId)
+        .collection('messages')
+        .orderBy('time', descending: true)
+        .limit(limit)
+        .snapshots();
+  }
+
+  Stream<List<QueryDocumentSnapshot<Object?>>> getUserChats({
+    required String userId,
+  }) {
+    return chatsCollection.snapshots().map((event) => event.docs.where((e) {
+          return e.id.contains(userId);
+        }).toList());
   }
 
   Stream<QuerySnapshot<Object?>> getAllUser({required String userId}) {
     return userCollection.where('id', isNotEqualTo: userId).snapshots();
-  }
-
-  // get chats of a particular group
-  Stream<QuerySnapshot> getChats(String groupId) {
-    return chatsCollection
-        .doc(groupId)
-        .collection('messages')
-        .orderBy('time', descending: true)
-        .get()
-        .asStream();
   }
 
   // search groups
@@ -130,12 +144,16 @@ class ChatService {
         .get();
   }
 
-  Stream<QuerySnapshot> getRecentMsg(String groupId) {
-    return chatsCollection
-        .doc(groupId)
-        .collection('messages')
-        .orderBy('time')
-        .limitToLast(2)
-        .snapshots();
+  Future<UserModel?> checkUserExist(
+      {required String mobile, required String phoneCode}) async {
+    final doc = await userCollection
+        .where('mobile', isEqualTo: mobile)
+        .where('phoneCode', isEqualTo: phoneCode)
+        .get();
+    if (doc.docs.isNotEmpty) {
+      return UserModel.fromJson(doc.docs.first.data() as Map<String, dynamic>);
+    } else {
+      return null;
+    }
   }
 }

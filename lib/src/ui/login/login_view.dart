@@ -32,6 +32,7 @@ class LoginView extends StatelessWidget {
                   ctrl: controller.phoneCtrl,
                   focusNode: controller.phoneNode,
                   hint: 'Enter phone number',
+                  textInputType: TextInputType.number,
                 ),
                 30.toSpace(),
                 AppTextButton(

@@ -4,9 +4,8 @@ class ChatRoomModel {
   String id;
   List<String> members;
   String? lastMessage;
-  String? lastMessageType;
+  MessageType? lastMessageType;
   int? lastMessageTime;
-  List<MessageModel>? messages;
 
   ChatRoomModel({
     required this.id,
@@ -14,7 +13,6 @@ class ChatRoomModel {
     this.lastMessage,
     this.lastMessageTime,
     this.lastMessageType,
-    this.messages,
   });
 
   factory ChatRoomModel.fromJson(Map<String, dynamic> json) => ChatRoomModel(
@@ -24,13 +22,10 @@ class ChatRoomModel {
             : List<String>.from(json["members"].map((x) => x)),
         lastMessage: json['lastMessage'] == null ? '' : json["lastMessage"],
         lastMessageType:
-            json['lastMessageType'] == null ? '' : json["lastMessageType"],
+            json['lastMessageType'] == null ? MessageType.text : decodeMessageType(type:json["lastMessageType"]),
         lastMessageTime:
-            json['lastMessageTime'] == null ? '' : json["lastMessageTime"],
-        messages: json["messages"] == null
-            ? []
-            : List<MessageModel>.from(
-                json["messages"].map((x) => MessageModel.fromJson(x))),
+            json['lastMessageTime'] == null ? 0 : json["lastMessageTime"],
+
       );
 
   Map<String, dynamic> toJson() => {
@@ -38,7 +33,6 @@ class ChatRoomModel {
         "members": members,
         "lastMessage": lastMessage,
         "lastMessageTime": lastMessageTime,
-        "messages": messages,
-        "lastMessageType": lastMessageType,
+        "lastMessageType":  encodeMessageType(type: lastMessageType!),
       };
 }

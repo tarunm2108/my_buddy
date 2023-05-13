@@ -4,6 +4,7 @@ String appName = "Mu Buddy";
 String serverDate  = 'yyyy-MM-dd HH:mm:ss';
 String ddMMMyyyyhhmma  = 'dd MMM, yyyy hh:mm a';
 String timeFormat  = 'hh:mm a';
+String dateFormat  = 'dd MMM yyyy';
 
 ///App String's
 String submit = "Submit";
@@ -15,8 +16,9 @@ String logout = "Logout";
 String yes = "Yes";
 String no = "No";
 String ok = "OK";
+String mobileNumber = "Mobile Number";
 String noUserFoundYet = "No user found yet";
-String startChats = "Start chats";
+String startChats = "Start chats\nTap Add user button";
 String selectAOption = "Select a option";
 String typeAMessage = "Type a message...";
 String fromCamera = "From Camera";

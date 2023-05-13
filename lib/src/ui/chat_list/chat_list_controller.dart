@@ -6,6 +6,7 @@ import 'package:my_buddy/model/chat_room_model.dart';
 import 'package:my_buddy/model/user_model.dart';
 import 'package:my_buddy/service/chat_service.dart';
 import 'package:my_buddy/src/base/base_controller.dart';
+import 'package:my_buddy/utills/shared_pre.dart';
 
 class ChatListController extends AppBaseController {
   UserModel? loginUser;
@@ -13,9 +14,13 @@ class ChatListController extends AppBaseController {
   @override
   Future<void> onReady() async {
     setBusy(true);
-    loginUser = await getLoginUser();
-    await ChatService.instance
-        .updateUserStatus(userId: loginUser?.id ?? '', status: true);
+    loginUser = getLoginUser();
+    await ChatService.instance.updateUserProfile(
+      user: loginUser!.copyWith(
+        isOnline: true,
+        fcmToken: SharedPre.instance.getStringValue(SharedPre.deviceToken),
+      ),
+    );
     setBusy(false);
     super.onReady();
   }
@@ -44,4 +49,7 @@ class ChatListController extends AppBaseController {
     return ChatService.instance.getUserChats(userId: loginUser?.id ?? '');
   }
 
+  int checkCount(Map<String, dynamic> data) {
+    return data['${loginUser!.id}_unread'] ?? 0;
+  }
 }

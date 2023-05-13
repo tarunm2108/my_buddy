@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:my_buddy/model/chat_notification.dart';
 import 'package:my_buddy/model/message_model.dart';
 import 'package:my_buddy/service/chat_service.dart';
+import 'package:my_buddy/service/firebase_service.dart';
 import 'package:my_buddy/src/base/base_controller.dart';
 import 'package:my_buddy/src/ui/chat_view/media_message/media_message_arg.dart';
 
@@ -49,6 +51,13 @@ class MediaMessageController extends AppBaseController {
       );
       setBusy(false);
       back();
+      FBNotification.instance.sendNotification(
+        notification: ChatNotification(
+          title: 'New message for ${arg?.sender?.name ?? 'user'}',
+          body: decodeMessageTypeToString(message.type, ''),
+          token: arg?.receiver?.fcmToken ?? '',
+        ),
+      );
     } else {
       showToast(msg: 'Please check your file');
     }

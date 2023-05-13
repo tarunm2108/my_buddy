@@ -18,31 +18,37 @@ class SetupProfileController extends AppBaseController {
   String _selectedGender = 'Male';
   List<String> genders = ['Male', 'Female', 'Other'];
   Map<String, dynamic> argument = {};
+  UserModel? loginUser;
 
   @override
   void onReady() {
     argument = Get.arguments;
+    update();
   }
 
   Future<void> onSubmitTap() async {
+    nodeName.unfocus();
+    nodeEmail.unfocus();
+    nodeDob.unfocus();
     if (_checkValidation()) {
       setBusy(true);
-      final loginUser = await ChatService.instance.createUser(
-        user: UserModel(
-          id: '',
-          name: nameCtrl.text.trim(),
-          mobile: argument['mobile'],
-          phoneCode: argument['phoneCode'],
-          dob: dobCtrl.text.trim(),
-          gender: selectedGender,
-          isOnline: true,
-        ),
-      );
-      await SharedPre.setObj(SharedPre.loginUser, loginUser.toJson());
-      await SharedPre.setBool(SharedPre.isLogin, true);
-      setBusy(false);
-      Get.offAllNamed(chatListView);
-    }
+        final loginUser = await ChatService.instance.createUser(
+          user: UserModel(
+            id: '',
+            name: nameCtrl.text.trim(),
+            mobile: argument['mobile'] ?? '',
+            phoneCode: argument['phoneCode'] ?? '',
+            dob: dobCtrl.text.trim(),
+            gender: selectedGender,
+            isOnline: true,
+          ),
+        );
+        await SharedPre.instance
+            .setValue(SharedPre.loginUser, loginUser.toJson());
+        await SharedPre.instance.setValue(SharedPre.isLogin, true);
+        setBusy(false);
+        Get.offAllNamed(chatListView);
+      }
   }
 
   bool _checkValidation() {

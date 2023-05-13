@@ -18,24 +18,26 @@ class UserListView extends StatelessWidget {
           automaticallyImplyLeading: true,
         ),
         body: StreamBuilder<QuerySnapshot>(
-            stream: ChatService.instance
-                .getAllUser(userId: controller.loginUser?.id ?? ''),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.active) {
-                if (!snapshot.hasData) {
-                  return Text(
-                    noUserFoundYet,
-                    style: const TextStyle().regular,
-                  );
-                }
-                return ListView(
-                    children: _getExpenseItems(snapshot, controller));
-              } else {
-                return const Center(
-                  child: CircularProgressIndicator(),
+          stream: ChatService.instance
+              .getAllUser(userId: controller.loginUser?.id ?? ''),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.active) {
+              if (!snapshot.hasData) {
+                return Text(
+                  noUserFoundYet,
+                  style: const TextStyle().regular,
                 );
               }
-            }),
+              return ListView(
+                children: _getExpenseItems(snapshot, controller),
+              );
+            } else {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+          },
+        ),
       ),
       init: UserListController(),
     );

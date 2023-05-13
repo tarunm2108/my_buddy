@@ -53,21 +53,23 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       debugShowCheckedModeBanner: false,
       title: appName,
       theme: Theme.of(context).copyWith(
-          primaryColor: primaryColor,
-          appBarTheme: Theme.of(context)
-              .appBarTheme
-              .copyWith(backgroundColor: primaryColor),
-          colorScheme: Theme.of(context).colorScheme.copyWith(
-                secondary: primaryColor,
-              ),
-          radioTheme: Theme.of(context).radioTheme.copyWith(
+        primaryColor: primaryColor,
+        appBarTheme: Theme.of(context)
+            .appBarTheme
+            .copyWith(backgroundColor: primaryColor),
+        colorScheme: Theme.of(context).colorScheme.copyWith(
+              secondary: primaryColor,
+            ),
+        radioTheme: Theme.of(context).radioTheme.copyWith(
               fillColor:
-                  MaterialStateColor.resolveWith((states) => Colors.purple))),
+                  MaterialStateColor.resolveWith((states) => Colors.purple),
+            ),
+      ),
     );
   }
 
   Future<void> updateUserStatus({required bool status}) async {
-    final isLogin = await SharedPre.getBoolValue(SharedPre.isLogin);
+    final isLogin = SharedPre.instance.getBoolValue(SharedPre.isLogin);
     if (isLogin) {
       final user = await AppBaseController().getLoginUser();
       ChatService.instance.updateUserStatus(userId: user.id, status: status);

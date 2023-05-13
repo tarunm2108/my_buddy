@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:my_buddy/app_consts/app_assets.dart';
@@ -11,6 +12,7 @@ import 'package:my_buddy/model/user_model.dart';
 import 'package:my_buddy/src/ui/chat_view/chat_controller.dart';
 import 'package:my_buddy/src/widgets/load_image_widget.dart';
 import 'package:my_buddy/src/widgets/loader_widget.dart';
+import 'package:flutter/foundation.dart' as foundation;
 
 class ChatView extends StatelessWidget {
   const ChatView({Key? key}) : super(key: key);
@@ -31,14 +33,18 @@ class ChatView extends StatelessWidget {
                 return Row(
                   children: [
                     Card(
-                      margin: EdgeInsets.zero,
-                      clipBehavior: Clip.antiAlias,
-                      shape: const CircleBorder(),
-                      child: Image.asset(
-                        AppAssets.defaultProfile,
-                        height: 40,
-                      ),
-                    ),
+                        margin: EdgeInsets.zero,
+                        clipBehavior: Clip.antiAlias,
+                        shape: const CircleBorder(),
+                        child: LoadImageWidget(
+                          imagePath: user.profileUrl ?? '',
+                          imageType: ImageType.network,
+                          height: 40,
+                          errorWidget: Image.asset(
+                            AppAssets.defaultProfile,
+                            height: 40,
+                          ),
+                        )),
                     10.toSpace(),
                     Expanded(
                       child: Column(
@@ -152,6 +158,19 @@ class ChatView extends StatelessWidget {
                   ),
                 ),
                 TextButton(
+                  onPressed: () =>
+                      controller.isEmojiShowing = !controller.isEmojiShowing,
+                  style: TextButton.styleFrom(
+                      shape: const CircleBorder(),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(40, 40)),
+                  child: Icon(
+                    Icons.emoji_emotions,
+                    color: primaryColor,
+                  ),
+                ),
+                TextButton(
                   onPressed: () => controller.messageSend(),
                   style: TextButton.styleFrom(
                       shape: const CircleBorder(),
@@ -166,6 +185,49 @@ class ChatView extends StatelessWidget {
                 10.toSpace(),
               ],
             ),
+            Offstage(
+              offstage: controller.isEmojiShowing,
+              child: SizedBox(
+                height: 250,
+                child: EmojiPicker(
+                  onEmojiSelected: (category, emoji) {},
+                  onBackspacePressed: () {},
+                  textEditingController: controller.textCtrl,
+                  config: Config(
+                    columns: 7,
+                    emojiSizeMax: 32 *
+                        (foundation.defaultTargetPlatform == TargetPlatform.iOS
+                            ? 1.30
+                            : 1.0),
+                    verticalSpacing: 0,
+                    horizontalSpacing: 0,
+                    gridPadding: EdgeInsets.zero,
+                    initCategory: Category.RECENT,
+                    bgColor: const Color(0xFFF2F2F2),
+                    indicatorColor: Colors.blue,
+                    iconColor: Colors.grey,
+                    iconColorSelected: Colors.blue,
+                    backspaceColor: Colors.blue,
+                    skinToneDialogBgColor: Colors.white,
+                    skinToneIndicatorColor: Colors.grey,
+                    enableSkinTones: true,
+                    showRecentsTab: true,
+                    recentsLimit: 28,
+                    noRecents: const Text(
+                      'No Recents',
+                      style: TextStyle(fontSize: 20, color: Colors.black26),
+                      textAlign: TextAlign.center,
+                    ),
+                    // Needs to be const Widget
+                    loadingIndicator: const SizedBox.shrink(),
+                    // Needs to be const Widget
+                    tabIndicatorAnimDuration: kTabScrollDuration,
+                    categoryIcons: const CategoryIcons(),
+                    buttonMode: ButtonMode.MATERIAL,
+                  ),
+                ),
+              ),
+            ),
             10.toSpace(),
           ],
         ),
@@ -178,12 +240,12 @@ class ChatView extends StatelessWidget {
       int index, ChatController controller, MessageModel? msgItem) {
     return Container(
       child: msgItem?.senderId == controller.sender?.id
-          ? _leftMessageView(msgItem)
-          : _rightMessageView(msgItem),
+          ? _rightMsgWidget(msgItem)
+          : _leftMsgWidget(msgItem),
     );
   }
 
-  Widget _leftMessageView(MessageModel? msgItem) {
+  Widget _rightMsgWidget(MessageModel? msgItem) {
     return Container(
       alignment: Alignment.centerRight,
       child: Container(
@@ -205,7 +267,7 @@ class ChatView extends StatelessWidget {
     );
   }
 
-  Widget _rightMessageView(MessageModel? msgItem) {
+  Widget _leftMsgWidget(MessageModel? msgItem) {
     return Container(
       width: Get.width,
       alignment: Alignment.centerLeft,
@@ -225,7 +287,9 @@ class ChatView extends StatelessWidget {
                   bottomRight: Radius.circular(14),
                 ),
               ),
-              child: _textTypeChat(msg: msgItem?.message ?? ''),
+              child: msgItem?.type == MessageType.image
+                  ? _imageTypeChat(msgItem)
+                  : _textTypeChat(msg: msgItem?.message ?? ''),
             ),
           ),
         ],

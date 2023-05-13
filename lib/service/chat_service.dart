@@ -66,6 +66,10 @@ class ChatService {
     return user;
   }
 
+  Future<void> updateUserProfile({required UserModel user}) async {
+    return await userCollection.doc(user.id).update(user.toJson());
+  }
+
   // create chat room
   Future<void> createChatRoom({
     required String senderId,
@@ -93,13 +97,19 @@ class ChatService {
     return chatRoomId;
   }
 
+  Future<String> getUserFcm({required String userId}) async {
+    final ref = await userCollection.doc(userId).get();
+    final user = UserModel.fromJson(ref.data() as Map<String,dynamic>);
+    return user.fcmToken ?? '';
+  }
+
   Future<void> updateUnreadCount({
     required String userId,
     required String chatRoomId,
     bool? isAllRead,
   }) async {
     final docRef = await chatsCollection.doc(chatRoomId).get();
-    final data = docRef.data() as Map<String,dynamic>;
+    final data = docRef.data() as Map<String, dynamic>;
     if (isAllRead ?? false) {
       await chatsCollection.doc(chatRoomId).update({
         '${userId}_unread': 0,
@@ -107,7 +117,7 @@ class ChatService {
     } else {
       int? count = data['${userId}_unread'];
       await chatsCollection.doc(chatRoomId).update({
-        '${userId}_unread': count == null ? 0 : count + 1,
+        '${userId}_unread': count == null ? 1 : count + 1,
       });
     }
   }

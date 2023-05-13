@@ -20,8 +20,8 @@ class LoginController extends AppBaseController {
         phoneCode: phoneCode,
       );
       if (user != null) {
-        await SharedPre.setObj(SharedPre.loginUser, user.toJson());
-        await SharedPre.setBool(SharedPre.isLogin, true);
+        await SharedPre.instance.setValue(SharedPre.loginUser, user.toJson());
+        await SharedPre.instance.setValue(SharedPre.isLogin, true);
         setBusy(false);
         Get.offAllNamed(chatListView);
       } else {

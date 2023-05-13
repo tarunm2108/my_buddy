@@ -12,23 +12,25 @@ import 'package:my_buddy/app_consts/app_colors.dart';
 import 'package:my_buddy/app_consts/constants.dart';
 import 'package:my_buddy/app_consts/extension/text_style_extension.dart';
 import 'package:my_buddy/app_route/app_router.dart';
+import 'package:my_buddy/model/message_model.dart';
 import 'package:my_buddy/model/user_model.dart';
 import 'package:my_buddy/service/chat_service.dart';
 import 'package:my_buddy/utills/shared_pre.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class AppBaseController extends GetxController {
   bool _isBusy = false;
   DateTime? currentBackPressTime;
 
-  Future<UserModel> getLoginUser() async {
-    final data = await SharedPre.getObj(SharedPre.loginUser);
+  UserModel getLoginUser() {
+    final data = SharedPre.instance.getObj(SharedPre.loginUser);
     return UserModel.fromJson(data);
   }
 
-  Future<void> logoutUser() async {
-    final user = await getLoginUser();
+  void logoutUser() {
+    final user = getLoginUser();
     ChatService.instance.updateUserStatus(userId: user.id, status: false);
-    SharedPre.clearAll();
+    SharedPre.instance.clearAll();
     Get.offAllNamed(loginView);
   }
 
@@ -42,12 +44,31 @@ class AppBaseController extends GetxController {
     return kb / 1024;
   }
 
+  Future<PackageInfo> getAppInfo() async {
+    return await PackageInfo.fromPlatform();
+  }
+
   Color getStringToColor({required String? hexColor}) {
     try {
       final color = hexColor?.replaceAll('#', '');
       return Color(int.parse('0xff$color'));
     } catch (e) {
       return Colors.white;
+    }
+  }
+
+  String decodeMessageTypeToString(MessageType type, String msg) {
+    switch (type) {
+      case MessageType.text:
+        return msg;
+      case MessageType.image:
+        return 'Send a image';
+      case MessageType.video:
+        return 'Send a video';
+      case MessageType.voice:
+        return 'Send a voice';
+      case MessageType.doc:
+        return 'Send a document';
     }
   }
 

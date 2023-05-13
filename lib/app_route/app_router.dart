@@ -3,6 +3,7 @@ import 'package:my_buddy/src/ui/chat_list/chat_list_view.dart';
 import 'package:my_buddy/src/ui/chat_view/chat_view.dart';
 import 'package:my_buddy/src/ui/chat_view/media_message/media_message_view.dart';
 import 'package:my_buddy/src/ui/login/login_view.dart';
+import 'package:my_buddy/src/ui/profile/profile_view.dart';
 import 'package:my_buddy/src/ui/setup_profile/setup_profile_view.dart';
 import 'package:my_buddy/src/ui/splash/splash_view.dart';
 import 'package:my_buddy/src/ui/users_list/user_list_view.dart';
@@ -18,6 +19,7 @@ const String chatListView = "/chatList";
 const String userListView = "/userList";
 const String chatView = "/chat";
 const String mediaMessageView = "/mediaMessage";
+const String profileView = "/profile";
 
 class AppPages {
   static const initial = splashView;
@@ -54,6 +56,10 @@ class AppPages {
     GetPage(
       name: mediaMessageView,
       page: () => const MediaMessageView(),
+    ),
+    GetPage(
+      name: profileView,
+      page: () => const ProfileView(),
     ),
   ];
 }

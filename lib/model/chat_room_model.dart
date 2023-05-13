@@ -33,6 +33,6 @@ class ChatRoomModel {
         "members": members,
         "lastMessage": lastMessage,
         "lastMessageTime": lastMessageTime,
-        "lastMessageType":  encodeMessageType(type: lastMessageType!),
+        "lastMessageType":  encodeMessageType(type: lastMessageType ?? MessageType.text),
       };
 }

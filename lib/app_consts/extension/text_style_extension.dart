@@ -11,7 +11,7 @@ extension TextStyles on TextStyle {
     color: Colors.black,
     fontSize: 16,
     fontFamily: 'Bold',
-    fontWeight: FontWeight.w800,
+    fontWeight: FontWeight.w700,
   );
 
   TextStyle get regular => const TextStyle(

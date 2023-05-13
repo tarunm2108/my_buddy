@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:my_buddy/app_consts/app_assets.dart';
@@ -7,10 +6,11 @@ import 'package:my_buddy/app_consts/constants.dart';
 import 'package:my_buddy/app_consts/extension/space.dart';
 import 'package:my_buddy/app_consts/extension/text_style_extension.dart';
 import 'package:my_buddy/model/chat_room_model.dart';
-import 'package:my_buddy/model/message_model.dart';
 import 'package:my_buddy/model/user_model.dart';
 import 'package:my_buddy/service/chat_service.dart';
 import 'package:my_buddy/src/ui/chat_list/chat_list_controller.dart';
+import 'package:my_buddy/src/ui/chat_list/drawer/drawer_view.dart';
+import 'package:my_buddy/src/widgets/load_image_widget.dart';
 import 'package:my_buddy/src/widgets/loader_widget.dart';
 
 class ChatListView extends StatelessWidget {
@@ -25,18 +25,9 @@ class ChatListView extends StatelessWidget {
             'Chats',
             style: const TextStyle().bold.copyWith(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: 21,
                 ),
           ),
-          actions: [
-            IconButton(
-              onPressed: () => controller.showLogoutDialog(),
-              icon: const Icon(
-                Icons.logout,
-                color: Colors.white,
-              ),
-            )
-          ],
         ),
         body: controller.isBusy
             ? const LoaderWidget()
@@ -44,25 +35,31 @@ class ChatListView extends StatelessWidget {
                 stream: controller.chatListStream(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.active) {
-                    if (!snapshot.hasData) {
-                      return Center(
-                        child: Text(
-                          startChats,
-                          style: const TextStyle().regular,
-                        ),
-                      );
-                    }
-                    return ListView.builder(
-                        itemCount: snapshot.data?.length ?? 0,
-                        padding: EdgeInsets.zero,
-                        shrinkWrap: true,
-                        itemBuilder: (context, index) {
-                          return _item(controller, snapshot.data?[index]);
-                        });
+                    return snapshot.data?.length == 0
+                        ? Center(
+                            child: Text(
+                              startChats,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle()
+                                  .regular
+                                  .copyWith(color: Colors.black),
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: snapshot.data?.length ?? 0,
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            itemBuilder: (context, index) {
+                              final doc = snapshot.data?[index];
+                              return _item(controller,
+                                  doc?.data() as Map<String, dynamic>);
+                            },
+                          );
                   } else {
                     return const LoaderWidget();
                   }
-                }),
+                },
+              ),
         floatingActionButton: FloatingActionButton(
           onPressed: () => controller.goUserList(),
           child: const Icon(
@@ -70,7 +67,7 @@ class ChatListView extends StatelessWidget {
             color: Colors.white,
           ),
         ),
-
+        drawer: const DrawerView(),
       ),
       init: ChatListController(),
     );
@@ -78,9 +75,9 @@ class ChatListView extends StatelessWidget {
 
   Widget _item(
     ChatListController controller,
-    QueryDocumentSnapshot<Object?>? doc,
+    Map<String, dynamic> data,
   ) {
-    final item = ChatRoomModel.fromJson(doc?.data() as Map<String, dynamic>);
+    final item = ChatRoomModel.fromJson(data);
     final receiverId = item.members
         .firstWhere((element) => element != controller.loginUser?.id);
     return StreamBuilder(
@@ -109,9 +106,14 @@ class ChatListView extends StatelessWidget {
                             shape: CircleBorder(
                               side: BorderSide(color: primaryColor),
                             ),
-                            child: Image.asset(
-                              AppAssets.defaultProfile,
+                            child: LoadImageWidget(
+                              imageType: ImageType.network,
+                              imagePath: user.profileUrl ?? '',
                               height: 50,
+                              errorWidget: Image.asset(
+                                AppAssets.defaultProfile,
+                                height: 50,
+                              ),
                             ),
                           ),
                           Positioned(
@@ -137,34 +139,46 @@ class ChatListView extends StatelessWidget {
                           style: const TextStyle().medium.copyWith(
                                 color: Colors.black,
                                 fontSize: 18,
+                                fontWeight: controller.checkCount(data) > 0
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
                               ),
                         ),
                         5.toSpace(),
                         Text(
-                          lastMsg(
+                          controller.decodeMessageTypeToString(
                             item.lastMessageType!,
                             item.lastMessage ?? '',
                           ),
                           style: const TextStyle().regular.copyWith(
-                                color: Colors.black54,
+                                color: controller.checkCount(data) > 0
+                                    ? Colors.black
+                                    : Colors.black54,
+                                fontWeight: controller.checkCount(data) > 0
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
                               ),
                         ),
                       ],
                     ),
-                    trailing: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          controller.getTime(item.lastMessageTime),
-                          style: const TextStyle().regular.copyWith(
-                                color: Colors.black38,
-                                fontSize: 12,
-                              ),
-                        ),
-                        _unreadCount(
-                            doc?.data() as Map<String, dynamic>, controller),
-                      ],
+                    trailing: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            controller.getTime(item.lastMessageTime),
+                            style: const TextStyle().regular.copyWith(
+                                  color: controller.checkCount(data) > 0
+                                      ? primaryColor
+                                      : Colors.black38,
+                                  fontSize: 12,
+                                ),
+                          ),
+                          _unreadCount(data, controller),
+                        ],
+                      ),
                     ),
                   ),
                   const Divider(
@@ -182,27 +196,12 @@ class ChatListView extends StatelessWidget {
     );
   }
 
-  String lastMsg(MessageType type, String msg) {
-    switch (type) {
-      case MessageType.text:
-        return msg;
-      case MessageType.image:
-        return 'Send a image';
-      case MessageType.video:
-        return 'Send a video';
-      case MessageType.voice:
-        return 'Send a voice';
-      case MessageType.doc:
-        return 'Send a document';
-    }
-  }
-
   Widget _unreadCount(
     Map<String, dynamic> data,
     ChatListController controller,
   ) {
-    int? count = data['${controller.loginUser!.id}_unread'];
-    if ((count ?? 0) > 0) {
+    int count = controller.checkCount(data);
+    if (count > 0) {
       return Container(
         padding: const EdgeInsets.all(5),
         decoration: const BoxDecoration(

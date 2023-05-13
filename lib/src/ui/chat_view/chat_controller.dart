@@ -6,10 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:my_buddy/app_consts/constants.dart';
 import 'package:my_buddy/app_route/app_router.dart';
+import 'package:my_buddy/model/chat_notification.dart';
 import 'package:my_buddy/model/chat_room_model.dart';
 import 'package:my_buddy/model/message_model.dart';
 import 'package:my_buddy/model/user_model.dart';
 import 'package:my_buddy/service/chat_service.dart';
+import 'package:my_buddy/service/firebase_service.dart';
 import 'package:my_buddy/src/base/base_controller.dart';
 import 'package:my_buddy/src/ui/chat_view/media_message/media_message_arg.dart';
 
@@ -19,7 +21,10 @@ class ChatController extends AppBaseController {
   UserModel? sender, receiver;
   ChatRoomModel? chatRoom;
   ScrollController scrollController = ScrollController();
-  bool _scrolling = false, _searching = false, _isSearch = false;
+  bool _scrolling = false,
+      _searching = false,
+      _isSearch = false,
+      _isEmojiShowing = false;
   int limit = 20, a = 20;
   Timer? _timer;
   List<AttachmentItem> attachmentsOption = [];
@@ -103,6 +108,18 @@ class ChatController extends AppBaseController {
         chatRoomId: chatRoom?.id ?? '',
         message: message,
       );
+      FBNotification.instance.sendNotification(
+        notification: ChatNotification(
+          title: 'New message for ${sender?.name ?? 'user'}',
+          body: message.message,
+          token: receiver?.fcmToken ?? '',
+          data: {
+            'receiver_id': receiver?.id ?? '',
+            'sender_id': sender?.id ?? '',
+            'chat_room_id': chatRoom?.id ?? '',
+          },
+        ),
+      );
       //scrollList();
     } else {
       showToast(msg: "Please Enter a message");
@@ -162,6 +179,13 @@ class ChatController extends AppBaseController {
 
   set scrolling(bool value) {
     _scrolling = value;
+    update();
+  }
+
+  get isEmojiShowing => _isEmojiShowing;
+
+  set isEmojiShowing(value) {
+    _isEmojiShowing = value;
     update();
   }
 }
